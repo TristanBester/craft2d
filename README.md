@@ -17,5 +17,5 @@
 
 ### Very Hard
 1. Get diamond: Bridge + water + collect diamond
-2. Make diamond weapon: Diamond + Sticks + Use Crafting Table
+2. Make diamond weapon: Diamond + weapon + Use Crafting Table
 3. Plant & harvest before time runs out?

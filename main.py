@@ -24,6 +24,10 @@ STICKS_IMG_PATH = "resources/objects/sticks.png"
 ROPE_IMG_PATH = "resources/objects/rope.png"
 BRIDGE_IMG_PATH = "resources/objects/bridge.png"
 WEAPON_BASIC_IMG_PATH = "resources/objects/weapon-basic.png"
+ISLAND_IMG_PATH = "resources/terrain/island.png"
+WATER_IMG_PATH = "resources/terrain/water.png"
+GEM_IMG_PATH = "resources/objects/gem.png"
+WEAPON_ADV_IMG_PATH = "resources/objects/weapon-advanced.png"
 
 
 class Renderer:
@@ -55,18 +59,36 @@ class Renderer:
         self.rope_image = self._load_image(ROPE_IMG_PATH)
         self.bridge_image = self._load_image(BRIDGE_IMG_PATH)
         self.weapon_basic_image = self._load_image(WEAPON_BASIC_IMG_PATH)
+        self.island_image = self._load_image(ISLAND_IMG_PATH)
+        self.water_image = self._load_image(WATER_IMG_PATH)
+        self.gem_image = self._load_image(GEM_IMG_PATH)
+        self.weapon_advanced_image = self._load_image(WEAPON_ADV_IMG_PATH)
 
     def render(self, grid, inventory, agent_position, direction):
         self.window.fill((0, 0, 0))
-        self._render_background()
+        self._render_background(grid)
         self._render_env_objects(grid)
         self._render_player(agent_position, direction)
         self._render_inventory(inventory)
         self._handle_events()
 
-    def _render_background(self):
+    def _render_background(self, grid):
         for r, c in product(range(self.n_rows), range(self.n_cols)):
-            self._render_cell(self.background_image, r, c)
+            if np.max(grid[r, c]) == 0:
+                self._render_cell(self.background_image, r, c)
+            else:
+                object_type = np.argmax(grid[r, c])
+                object_name = self.env_objects[object_type]
+
+                if object_name == "gem":
+                    self._render_cell(self.island_image, r, c)
+                elif object_name == "water":
+                    self._render_cell(self.water_image, r, c)
+                elif object_name == "bridge":
+                    self._render_cell(self.water_image, r, c)
+                    self._render_cell(self.bridge_image, r, c)
+                else:
+                    self._render_cell(self.background_image, r, c)
 
     def _render_env_objects(self, grid):
         for r, c in product(range(self.n_rows), range(self.n_cols)):
@@ -85,6 +107,8 @@ class Renderer:
                 self._render_cell(self.grass_image, r, c)
             elif object_name == "crafting-table":
                 self._render_cell(self.crafting_table_image, r, c)
+            elif object_name == "gem":
+                self._render_cell(self.gem_image, r, c)
 
     def _render_player(self, agent_position, direction):
         self._render_cell(
@@ -120,6 +144,16 @@ class Renderer:
                     image=self.weapon_basic_image, row=idx, col=self.n_cols
                 )
                 self._render_text(text="Weapon", row=idx, col=self.n_cols, loc="top")
+            elif object_name == "gem":
+                self._render_cell(image=self.gem_image, row=idx, col=self.n_cols)
+                self._render_text(text="Gem", row=idx, col=self.n_cols, loc="top")
+            elif object_name == "weapon-advanced":
+                self._render_cell(
+                    image=self.weapon_advanced_image, row=idx, col=self.n_cols
+                )
+                self._render_text(
+                    text="Weapon (Adv)", row=idx, col=self.n_cols, loc="top"
+                )
 
             self._render_text(
                 text="X " + str(int(count)), row=idx, col=self.n_cols + 1, size=20
@@ -160,7 +194,7 @@ class Renderer:
             ),
         )
 
-    def _load_image(self, path):
+    def _load_image(self, path, size=None):
         return pygame.transform.scale(
             pygame.image.load(path),
             self.cell_size,
@@ -184,12 +218,16 @@ class Environment:
         "tree": 2,
         "stone": 1,
         "grass": 1,
+        "gem": 1,
     }
     ENVIRONMENT_OBJECTS = (
         "tree",
         "stone",
         "grass",
         "crafting-table",
+        "water",
+        "gem",
+        "bridge",
     )
     INVENTORY_OBJECTS = (
         "wood",
@@ -199,6 +237,8 @@ class Environment:
         "rope",
         "bridge",
         "weapon-basic",
+        "gem",
+        "weapon-advanced",
     )
 
     def __init__(self):
@@ -221,8 +261,8 @@ class Environment:
         )
 
     def _generate_positions(self):
-        row = np.random.randint(0, self.n_rows - 1)
-        col = np.random.randint(0, self.n_cols - 1)
+        row = np.random.randint(2, self.n_rows - 1)
+        col = np.random.randint(2, self.n_cols - 1)
         return row, col
 
     def reset(self):
@@ -230,6 +270,9 @@ class Environment:
         used_positions = [(0, 0)]
 
         for i, object_name in enumerate(self.ENVIRONMENT_OBJECTS):
+            if object_name in ("water", "bridge"):
+                continue
+
             # Determine how many of each object to place
             if object_name in self.RESOURCE_COUNTS:
                 count = self.RESOURCE_COUNTS[object_name]
@@ -241,8 +284,36 @@ class Environment:
                 row, col = self._generate_positions()
                 while (row, col) in used_positions:
                     row, col = self._generate_positions()
-                used_positions.append((row, col))
+
+                # Add padding around object
+                for d_r, d_c in product(range(-1, 2), range(-1, 2)):
+                    used_positions.append((row + d_r, col + d_c))
                 self.grid[row, col, i] = 1
+
+            if object_name == "gem":
+                island_position = (row, col)
+
+        # Place water around island
+        for d_r in range(-1, 2):
+            for d_c in range(-1, 2):
+                if d_r == 0 and d_c == 0:
+                    continue
+                if (
+                    island_position[0] + d_r < 0
+                    or island_position[0] + d_r >= self.n_rows
+                ):
+                    continue
+                if (
+                    island_position[1] + d_c < 0
+                    or island_position[1] + d_c >= self.n_cols
+                ):
+                    continue
+
+                self.grid[
+                    island_position[0] + d_r,
+                    island_position[1] + d_c,
+                    self.ENVIRONMENT_OBJECTS.index("water"),
+                ] = 1
 
         self.agent_position = (0, 0)
         self.direction = np.zeros((4,))
@@ -285,8 +356,19 @@ class Environment:
         object_type = np.argmax(self.grid[interaction_row, interaction_col])
         object_name = self.ENVIRONMENT_OBJECTS[object_type]
 
-        # Add object to inventory
-        if object_name == "tree":
+        if object_name == "water" and self.inventory[5] > 0:
+            self.inventory[5] -= 1
+            self.grid[
+                interaction_row,
+                interaction_col,
+                self.ENVIRONMENT_OBJECTS.index("water"),
+            ] = 0
+            self.grid[
+                interaction_row,
+                interaction_col,
+                self.ENVIRONMENT_OBJECTS.index("bridge"),
+            ] = 1
+        elif object_name == "tree":
             self.inventory[0] += 1
             self.grid[interaction_row, interaction_col, object_type] = 0
         elif object_name == "stone":
@@ -295,7 +377,15 @@ class Environment:
         elif object_name == "grass":
             self.inventory[2] += 1
             self.grid[interaction_row, interaction_col, object_type] = 0
+        elif object_name == "gem":
+            self.inventory[7] += 1
+            self.grid[interaction_row, interaction_col, object_type] = 0
         elif object_name == "crafting-table":
+            if self.inventory[6] > 0 and self.inventory[7] > 0:
+                # Advanced weapon
+                self.inventory[8] += 1
+                self.inventory[6] -= 1
+                self.inventory[7] -= 1
             if self.inventory[3] > 0 and self.inventory[1] >= 1:
                 # Weapon
                 self.inventory[6] += 1
@@ -334,6 +424,10 @@ class Environment:
 
         # Update position if no collision
         if np.max(self.grid[n_row, n_col]) == 0:
+            self.agent_position = (n_row, n_col)
+        elif np.argmax(self.grid[n_row, n_col]) == self.ENVIRONMENT_OBJECTS.index(
+            "bridge"
+        ):
             self.agent_position = (n_row, n_col)
 
     def _update_agent_direction(self, action):

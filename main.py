@@ -8,25 +8,30 @@ WINDOW_WIDTH = 600
 WINDOW_HEIGHT = 600
 WINDOW_TITLE = "Craft2D"
 
-BACKGROUND_IMG_PATH = "resources/terrain/grass.png"
 PLAYER_IMGS_PATH = [
     "resources/agent/agent-right.png",
     "resources/agent/agent-left.png",
     "resources/agent/agent-up.png",
     "resources/agent/agent-down.png",
 ]
+BACKGROUND_IMG_PATH = "resources/terrain/grass.png"
 TREE_IMG_PATH = "resources/objects/tree.png"
 WOOD_IMG_PATH = "resources/objects/wood.png"
 STONE_IMG_PATH = "resources/objects/stone.png"
 GRASS_IMG_PATH = "resources/objects/grass.png"
+CRAFTING_TABLE_IMG_PATH = "resources/objects/crafting-table.png"
+STICKS_IMG_PATH = "resources/objects/sticks.png"
+ROPE_IMG_PATH = "resources/objects/rope.png"
+BRIDGE_IMG_PATH = "resources/objects/bridge.png"
+WEAPON_BASIC_IMG_PATH = "resources/objects/weapon-basic.png"
 
 
 class Renderer:
-    def __init__(self, n_rows, n_cols, env_object_mapping, inv_object_mapping):
+    def __init__(self, n_rows, n_cols, env_objects, inv_objects):
         self.n_rows = n_rows
         self.n_cols = n_cols
-        self.env_object_mapping = env_object_mapping
-        self.inv_object_mapping = inv_object_mapping
+        self.env_objects = env_objects
+        self.inv_objects = inv_objects
 
         self.cell_size = (
             WINDOW_WIDTH / (self.n_cols + 2),  # +2 for inventory
@@ -45,6 +50,11 @@ class Renderer:
         self.wood_image = self._load_image(WOOD_IMG_PATH)
         self.stone_image = self._load_image(STONE_IMG_PATH)
         self.grass_image = self._load_image(GRASS_IMG_PATH)
+        self.crafting_table_image = self._load_image(CRAFTING_TABLE_IMG_PATH)
+        self.sticks_image = self._load_image(STICKS_IMG_PATH)
+        self.rope_image = self._load_image(ROPE_IMG_PATH)
+        self.bridge_image = self._load_image(BRIDGE_IMG_PATH)
+        self.weapon_basic_image = self._load_image(WEAPON_BASIC_IMG_PATH)
 
     def render(self, grid, inventory, agent_position, direction):
         self.window.fill((0, 0, 0))
@@ -65,13 +75,16 @@ class Renderer:
                 continue
 
             object_type = np.argmax(grid[r, c])
+            object_name = self.env_objects[object_type]
 
-            if self.env_object_mapping[object_type] == "tree":
+            if object_name == "tree":
                 self._render_cell(self.tree_image, r, c)
-            elif self.env_object_mapping[object_type] == "stone":
+            elif object_name == "stone":
                 self._render_cell(self.stone_image, r, c)
-            elif self.env_object_mapping[object_type] == "grass":
+            elif object_name == "grass":
                 self._render_cell(self.grass_image, r, c)
+            elif object_name == "crafting-table":
+                self._render_cell(self.crafting_table_image, r, c)
 
     def _render_player(self, agent_position, direction):
         self._render_cell(
@@ -82,15 +95,31 @@ class Renderer:
 
     def _render_inventory(self, inventory):
         for idx, count in enumerate(inventory):
-            if self.inv_object_mapping[idx] == "wood":
+            object_name = self.inv_objects[idx]
+
+            if object_name == "wood":
                 self._render_cell(image=self.wood_image, row=idx, col=self.n_cols)
                 self._render_text(text="Wood", row=idx, col=self.n_cols, loc="top")
-            elif self.inv_object_mapping[idx] == "stone":
+            elif object_name == "stone":
                 self._render_cell(image=self.stone_image, row=idx, col=self.n_cols)
                 self._render_text(text="Stone", row=idx, col=self.n_cols, loc="top")
-            elif self.inv_object_mapping[idx] == "grass":
+            elif object_name == "grass":
                 self._render_cell(image=self.grass_image, row=idx, col=self.n_cols)
                 self._render_text(text="Grass", row=idx, col=self.n_cols, loc="top")
+            elif object_name == "sticks":
+                self._render_cell(image=self.sticks_image, row=idx, col=self.n_cols)
+                self._render_text(text="Sticks", row=idx, col=self.n_cols, loc="top")
+            elif object_name == "rope":
+                self._render_cell(image=self.rope_image, row=idx, col=self.n_cols)
+                self._render_text(text="Rope", row=idx, col=self.n_cols, loc="top")
+            elif object_name == "bridge":
+                self._render_cell(image=self.bridge_image, row=idx, col=self.n_cols)
+                self._render_text(text="Bridge", row=idx, col=self.n_cols, loc="top")
+            elif object_name == "weapon-basic":
+                self._render_cell(
+                    image=self.weapon_basic_image, row=idx, col=self.n_cols
+                )
+                self._render_text(text="Weapon", row=idx, col=self.n_cols, loc="top")
 
             self._render_text(
                 text="X " + str(int(count)), row=idx, col=self.n_cols + 1, size=20
@@ -151,32 +180,44 @@ class Environment:
     DOWN = 3
     USE = 4
 
-    env_object_mapping = {
-        0: "tree",
-        1: "stone",
-        2: "grass",
+    RESOURCE_COUNTS = {
+        "tree": 2,
+        "stone": 1,
+        "grass": 1,
     }
-    inv_object_mapping = {
-        0: "wood",
-        1: "stone",
-        2: "grass",
-    }
+    ENVIRONMENT_OBJECTS = (
+        "tree",
+        "stone",
+        "grass",
+        "crafting-table",
+    )
+    INVENTORY_OBJECTS = (
+        "wood",
+        "stone",
+        "grass",
+        "sticks",
+        "rope",
+        "bridge",
+        "weapon-basic",
+    )
 
     def __init__(self):
         self.n_rows = 10
         self.n_cols = 10  # 2 extra columns for the inventory
-        # tree - 0, stone - 1, grass - 2
-        self.n_env_objects = 3
-        self.n_inv_objects = 3
 
+        self.n_env_objects = len(self.ENVIRONMENT_OBJECTS)
+        self.n_inv_objects = len(self.INVENTORY_OBJECTS)
+
+        # Object order specified in ENVIRONMENT_OBJECTS
         self.grid = np.zeros((self.n_rows, self.n_cols, self.n_env_objects))
+        # Object order specified in INVENTORY_OBJECTS
         self.inventory = np.zeros((self.n_inv_objects,))
 
         self.renderer = Renderer(
             n_rows=self.n_rows,
             n_cols=self.n_cols,
-            env_object_mapping=self.env_object_mapping,
-            inv_object_mapping=self.inv_object_mapping,
+            env_objects=self.ENVIRONMENT_OBJECTS,
+            inv_objects=self.INVENTORY_OBJECTS,
         )
 
     def _generate_positions(self):
@@ -185,14 +226,23 @@ class Environment:
         return row, col
 
     def reset(self):
-        used_positions = []
+        # Agent position occupied
+        used_positions = [(0, 0)]
 
-        for i in range(self.n_env_objects):
-            row, col = self._generate_positions()
-            while (row, col) in used_positions:
+        for i, object_name in enumerate(self.ENVIRONMENT_OBJECTS):
+            # Determine how many of each object to place
+            if object_name in self.RESOURCE_COUNTS:
+                count = self.RESOURCE_COUNTS[object_name]
+            else:
+                count = 1
+
+            # Place objects
+            for _ in range(count):
                 row, col = self._generate_positions()
-            used_positions.append((row, col))
-            self.grid[row, col, i] = 1
+                while (row, col) in used_positions:
+                    row, col = self._generate_positions()
+                used_positions.append((row, col))
+                self.grid[row, col, i] = 1
 
         self.agent_position = (0, 0)
         self.direction = np.zeros((4,))
@@ -233,16 +283,37 @@ class Environment:
 
         # Get object type
         object_type = np.argmax(self.grid[interaction_row, interaction_col])
-        # Remove object from environment
-        self.grid[interaction_row, interaction_col, object_type] = 0
+        object_name = self.ENVIRONMENT_OBJECTS[object_type]
 
         # Add object to inventory
-        if self.env_object_mapping[object_type] == "tree":
+        if object_name == "tree":
             self.inventory[0] += 1
-        elif self.env_object_mapping[object_type] == "stone":
+            self.grid[interaction_row, interaction_col, object_type] = 0
+        elif object_name == "stone":
             self.inventory[1] += 1
-        elif self.env_object_mapping[object_type] == "grass":
+            self.grid[interaction_row, interaction_col, object_type] = 0
+        elif object_name == "grass":
             self.inventory[2] += 1
+            self.grid[interaction_row, interaction_col, object_type] = 0
+        elif object_name == "crafting-table":
+            if self.inventory[3] > 0 and self.inventory[1] >= 1:
+                # Weapon
+                self.inventory[6] += 1
+                self.inventory[3] -= 1
+                self.inventory[1] -= 1
+            elif self.inventory[3] > 0 and self.inventory[4] >= 1:
+                # Bridge
+                self.inventory[5] += 1
+                self.inventory[3] -= 1
+                self.inventory[4] -= 1
+            elif self.inventory[0] > 0:
+                # Sticks
+                self.inventory[0] -= 1
+                self.inventory[3] += 1
+            elif self.inventory[2] > 0:
+                # Rope
+                self.inventory[2] -= 1
+                self.inventory[4] += 1
 
     def _update_agent_position(self, action):
         self.last_position = self.agent_position

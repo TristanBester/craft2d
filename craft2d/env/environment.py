@@ -1,7 +1,9 @@
 from itertools import product
 
+import gymnasium as gym
 import numpy as np
-from gymnasium import Env, spaces
+
+from craft2d.render.render import HumanRenderer
 
 RIGHT = 0
 LEFT = 1
@@ -38,27 +40,41 @@ INVENTORY_OBJECTS = (
 )
 
 
-class Craft2dEnv(Env):
-    def __init__(self, n_rows: int, n_cols: int):
+class Craft2dEnv(gym.Env):
+    def __init__(self, n_rows: int, n_cols: int, render_mode: str = "human"):
         super().__init__()
         self.n_rows = n_rows
         self.n_cols = n_cols
+        self.render_mode = render_mode
         self.n_env_objects = len(ENVIRONMENT_OBJECTS)
         self.n_inv_objects = len(INVENTORY_OBJECTS)
 
-        self.action_space = spaces.Discrete(5)
+        self.action_space = gym.spaces.Discrete(5)
 
         # Oservation space is a tuple of: (environment, inventory, direction)
-        self.observation_space = spaces.Tuple(
+        self.observation_space = gym.spaces.Tuple(
             spaces=(
-                spaces.Box(
-                    low=0, high=MAX_RESOURCE_COUNT, shape=(3, 3, self.n_env_objects)
+                gym.spaces.Box(
+                    low=-1,  # -1 indicates out of bounds
+                    high=MAX_RESOURCE_COUNT,
+                    shape=(3, 3, self.n_env_objects),
                 ),
-                spaces.Box(low=0, high=MAX_RESOURCE_COUNT, shape=(self.n_inv_objects,)),
-                spaces.Box(low=0, high=1, shape=(4,)),
+                gym.spaces.Box(
+                    low=0, high=MAX_RESOURCE_COUNT, shape=(self.n_inv_objects,)
+                ),
+                gym.spaces.Box(low=0, high=1, shape=(4,)),
             )
         )
         self.reward_range = (0, 1)
+
+        if self.render_mode == "human":
+            self.renderer = HumanRenderer(
+                n_rows=self.n_rows,
+                n_cols=self.n_cols,
+                env_objects=ENVIRONMENT_OBJECTS,
+                inv_objects=INVENTORY_OBJECTS,
+                fps=24,
+            )
 
     def reset(self, seed: int = None, options: dict[str, str] = None):
         super().reset(seed=seed)
@@ -85,11 +101,44 @@ class Craft2dEnv(Env):
         else:
             self._update_agent_position(action)
             self._update_agent_direction(action)
+        return self._create_observation()
+
+    def render(self):
+        if self.render_mode is None:
+            assert self.spec is not None
+            gym.logger.warn(
+                "You are calling render method without specifying any render mode. "
+                "You can specify the render_mode at initialization, "
+                f'e.g. gym.make("{self.spec.id}", render_mode="rgb_array")'
+            )
+            return
+
+        if self.render_mode == "human":
+            self.renderer.render(
+                grid=self.grid,
+                inventory=self.inventory,
+                agent_position=self.agent_position,
+                direction=self.direction,
+            )
 
     def _create_observation(self):
-        grid_obs = self.grid[self.agent_position[0] - 1 : self.agent_position[0] + 2,]
+        # Fill observation with out of bounds
+        obs_grid = np.full((5, 5), fill_value=-1)
 
-        return ()
+        for d_r, d_c in product(range(-2, 3), range(-2, 3)):
+            n_r = self.agent_position[0] + d_r
+            n_c = self.agent_position[1] + d_c
+
+            # Test if out of bounds
+            if (n_r >= self.n_rows or n_r < 0) or (n_c >= self.n_cols or n_c < 0):
+                continue
+
+            obs_grid[d_r + 2, d_c + 2] = np.argmax(self.grid[n_r, n_c])
+        return (
+            obs_grid,
+            self.inventory,
+            self.direction,
+        )
 
     def _sample_position(self):
         row = np.random.randint(2, self.n_rows - 1)
@@ -212,7 +261,7 @@ class Craft2dEnv(Env):
         elif object_name == "crafting-table":
             self._handle_crafting_interaction()
 
-    def handle_crafting_interaction(self):
+    def _handle_crafting_interaction(self):
         if self.inventory[6] > 0 and self.inventory[7] > 0:
             # Advanced weapon
             self.inventory[8] += 1
@@ -239,11 +288,13 @@ class Craft2dEnv(Env):
 
     def _handle_water_interaction(self, itr_row, itr_col):
         # Place bridge on water if agent has bridge in inventory
+        water_idx_env = ENVIRONMENT_OBJECTS.index("water")
         bridge_idx_env = ENVIRONMENT_OBJECTS.index("bridge")
         bridge_idx_inv = INVENTORY_OBJECTS.index("bridge")
 
         if self.inventory[bridge_idx_inv] > 0:
             self.grid[itr_row, itr_col, bridge_idx_env] = 1
+            self.grid[itr_row, itr_col, water_idx_env] = 0
             self.inventory[bridge_idx_inv] -= 1
 
     def _collect_tree(self, itr_row, itr_col):
@@ -289,4 +340,4 @@ if __name__ == "__main__":
     env = Craft2dEnv(10, 10)
     env.reset()
 
-    env.step(0)
+    env.render()

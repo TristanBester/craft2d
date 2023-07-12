@@ -1,4 +1,6 @@
+import importlib.util
 from itertools import product
+from pathlib import Path
 
 import numpy as np
 import pygame
@@ -25,6 +27,16 @@ GEM_IMG_PATH = "resources/objects/gem.png"
 WEAPON_ADV_IMG_PATH = "resources/objects/weapon-advanced.png"
 
 
+def get_file_path(file_name):
+    spec = importlib.util.find_spec("craft2d")
+    if spec is None:
+        raise ImportError("Package 'craft2d' not found.")
+
+    package_path = Path(spec.origin)
+    file_path = package_path.parent / file_name
+    return str(file_path)
+
+
 class Renderer:
     def __init__(
         self,
@@ -48,21 +60,25 @@ class Renderer:
         )
 
         # Load assets
-        self.background_image = self._load_image(BACKGROUND_IMG_PATH)
+        self.background_image = self._load_image(get_file_path(BACKGROUND_IMG_PATH))
         self.player_images = self._load_images(PLAYER_IMGS_PATH)
-        self.tree_image = self._load_image(TREE_IMG_PATH)
-        self.wood_image = self._load_image(WOOD_IMG_PATH)
-        self.stone_image = self._load_image(STONE_IMG_PATH)
-        self.grass_image = self._load_image(GRASS_IMG_PATH)
-        self.crafting_table_image = self._load_image(CRAFTING_TABLE_IMG_PATH)
-        self.sticks_image = self._load_image(STICKS_IMG_PATH)
-        self.rope_image = self._load_image(ROPE_IMG_PATH)
-        self.bridge_image = self._load_image(BRIDGE_IMG_PATH)
-        self.weapon_basic_image = self._load_image(WEAPON_BASIC_IMG_PATH)
-        self.island_image = self._load_image(ISLAND_IMG_PATH)
-        self.water_image = self._load_image(WATER_IMG_PATH)
-        self.gem_image = self._load_image(GEM_IMG_PATH)
-        self.weapon_advanced_image = self._load_image(WEAPON_ADV_IMG_PATH)
+        self.tree_image = self._load_image(get_file_path(TREE_IMG_PATH))
+        self.wood_image = self._load_image(get_file_path(WOOD_IMG_PATH))
+        self.stone_image = self._load_image(get_file_path(STONE_IMG_PATH))
+        self.grass_image = self._load_image(get_file_path(GRASS_IMG_PATH))
+        self.crafting_table_image = self._load_image(
+            get_file_path(CRAFTING_TABLE_IMG_PATH)
+        )
+        self.sticks_image = self._load_image(get_file_path(STICKS_IMG_PATH))
+        self.rope_image = self._load_image(get_file_path(ROPE_IMG_PATH))
+        self.bridge_image = self._load_image(get_file_path(BRIDGE_IMG_PATH))
+        self.weapon_basic_image = self._load_image(get_file_path(WEAPON_BASIC_IMG_PATH))
+        self.island_image = self._load_image(get_file_path(ISLAND_IMG_PATH))
+        self.water_image = self._load_image(get_file_path(WATER_IMG_PATH))
+        self.gem_image = self._load_image(get_file_path(GEM_IMG_PATH))
+        self.weapon_advanced_image = self._load_image(
+            get_file_path(WEAPON_ADV_IMG_PATH)
+        )
 
         # Initialise pygame
         pygame.init()
@@ -190,7 +206,7 @@ class Renderer:
     def _load_images(self, paths):
         images = []
         for path in paths:
-            images.append(self._load_image(path))
+            images.append(self._load_image(get_file_path(path)))
         return images
 
 

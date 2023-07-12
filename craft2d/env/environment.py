@@ -13,10 +13,10 @@ USE = 4
 
 MAX_RESOURCE_COUNT = 3
 RESOURCE_COUNTS = {
-    "tree": 1,
-    "stone": 0,
-    "grass": 0,
-    "gem": 0,
+    "tree": 2,
+    "stone": 1,
+    "grass": 1,
+    "gem": 1,
 }
 ENVIRONMENT_OBJECTS = (
     "tree",
@@ -38,10 +38,26 @@ INVENTORY_OBJECTS = (
     "gem",
     "weapon-advanced",
 )
+TASKS = {
+    "get-wood": 0,
+    "get-stone": 1,
+    "get-grass": 2,
+    "make-sticks": 3,
+    "make-rope": 4,
+    "make-basic-weapon": 5,
+    "make-bridge": 6,
+    "get-gem": 7,
+    "make-advanced-weapon": 8,
+}
 
 
 class Craft2dEnv(gym.Env):
-    def __init__(self, n_rows: int, n_cols: int, render_mode: str = "human"):
+    def __init__(
+        self,
+        n_rows: int,
+        n_cols: int,
+        render_mode: str = "human",
+    ):
         super().__init__()
         self.n_rows = n_rows
         self.n_cols = n_cols
@@ -84,8 +100,15 @@ class Craft2dEnv(gym.Env):
                 fps=24,
             )
 
-    def reset(self, seed: int = None, options: dict[str, str] = None):
+    def reset(
+        self,
+        task: str = "get-wood",
+        seed: int = None,
+        options: dict[str, str] = None,
+    ):
         super().reset(seed=seed)
+        # Set task
+        self.task = task
         # Reset number of steps taken in environment
         self.n_steps = 0
 
@@ -107,8 +130,8 @@ class Craft2dEnv(gym.Env):
         else:
             self.grid = self.cached_grid.copy()
 
-        # # Setup island
-        # self._initialize_island()
+        # Setup island
+        self._initialize_island()
         return self._create_observation()
 
     def step(self, action: int):
@@ -119,7 +142,7 @@ class Craft2dEnv(gym.Env):
             self._update_agent_direction(action)
 
         obs = self._create_observation()
-        reward = 1 if self.inventory[INVENTORY_OBJECTS.index("wood")] == 1 else 0
+        reward = 1 if self.inventory[TASKS[self.task]] == 1 else 0
         done = reward == 1
 
         return obs, reward, done

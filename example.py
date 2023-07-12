@@ -6,6 +6,8 @@ from tqdm import tqdm
 
 from craft2d.env.environment import Craft2dEnv
 
+TASK = "get-wood"
+
 
 def get_rep(o):
     return tuple(
@@ -20,7 +22,7 @@ def get_rep(o):
 
 def eval(Q, env):
     done = False
-    o = env.reset()
+    o = env.reset(task=TASK)
 
     for t in range(30):
         if done:
@@ -35,7 +37,7 @@ def eval(Q, env):
 
 def render_eval(Q, env):
     done = False
-    o = env.reset()
+    o = env.reset(task=TASK)
 
     env.render()
 
@@ -65,14 +67,14 @@ if __name__ == "__main__":
     hit_count = []
 
     for episode in pbar:
-        o = env.reset()
+        o = env.reset(task=TASK)
         done = False
 
         # print(get_rep(o))
 
         # env.render()
 
-        for t in range(1000):
+        for t in range(5000):
             # print(get_rep(o))
             if done:
                 break
@@ -112,5 +114,5 @@ if __name__ == "__main__":
             pbar.set_description(
                 f"Reward {np.mean(rewards[-100:])}, {np.mean(obs_r[-100:])}, {np.mean(hit_count[-1000:])}"
             )
-        if episode % 1000 == 0 and episode > 0:
+        if episode % 10000 == 0 and episode > 0:
             render_eval(Q, env)

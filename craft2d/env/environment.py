@@ -13,10 +13,10 @@ USE = 4
 
 MAX_RESOURCE_COUNT = 3
 RESOURCE_COUNTS = {
-    "tree": 2,
-    "stone": 1,
-    "grass": 1,
-    "gem": 1,
+    "tree": 1,
+    "stone": 0,
+    "grass": 0,
+    "gem": 0,
 }
 ENVIRONMENT_OBJECTS = (
     "tree",
@@ -55,17 +55,25 @@ class Craft2dEnv(gym.Env):
         self.observation_space = gym.spaces.Tuple(
             spaces=(
                 gym.spaces.Box(
-                    low=-1,  # -1 indicates out of bounds
-                    high=MAX_RESOURCE_COUNT,
-                    shape=(3, 3, self.n_env_objects),
+                    low=0,
+                    high=max(self.n_rows, self.n_cols),
+                    shape=(2,),
                 ),
                 gym.spaces.Box(
-                    low=0, high=MAX_RESOURCE_COUNT, shape=(self.n_inv_objects,)
+                    low=0,
+                    high=MAX_RESOURCE_COUNT,
+                    shape=(self.n_inv_objects,),
                 ),
-                gym.spaces.Box(low=0, high=1, shape=(4,)),
+                gym.spaces.Box(
+                    low=0,
+                    high=1,
+                    shape=(4,),
+                ),
             )
         )
         self.reward_range = (0, 1)
+
+        self.init_required = True
 
         if self.render_mode == "human":
             self.renderer = HumanRenderer(
@@ -90,10 +98,18 @@ class Craft2dEnv(gym.Env):
         self.agent_position = (0, 0)
         self.direction = np.zeros((4,))
 
-        # Add resources to environment
-        self._initialize_environment()
-        # Setup island
-        self._initialize_island()
+        if self.init_required:
+            self.init_required = False
+
+            # Add resources to environment
+            self._initialize_environment()
+            self.cached_grid = self.grid.copy()
+        else:
+            self.grid = self.cached_grid.copy()
+
+        # # Setup island
+        # self._initialize_island()
+        return self._create_observation()
 
     def step(self, action: int):
         if action == USE:
@@ -101,7 +117,12 @@ class Craft2dEnv(gym.Env):
         else:
             self._update_agent_position(action)
             self._update_agent_direction(action)
-        return self._create_observation()
+
+        obs = self._create_observation()
+        reward = 1 if self.inventory[INVENTORY_OBJECTS.index("wood")] == 1 else 0
+        done = reward == 1
+
+        return obs, reward, done
 
     def render(self):
         if self.render_mode is None:
@@ -134,15 +155,22 @@ class Craft2dEnv(gym.Env):
                 continue
 
             obs_grid[d_r + 2, d_c + 2] = np.argmax(self.grid[n_r, n_c])
+
+        # return (
+        #     .copy(),
+        #     self.inventory.copy(),
+        #     self.direction.copy(),
+        # )
+
         return (
-            obs_grid,
-            self.inventory,
-            self.direction,
+            np.array([self.agent_position[0], self.agent_position[1]]).copy(),
+            self.inventory.copy(),
+            self.direction.copy(),
         )
 
     def _sample_position(self):
-        row = np.random.randint(2, self.n_rows - 1)
-        col = np.random.randint(2, self.n_cols - 1)
+        row = np.random.randint(1, self.n_rows - 1)
+        col = np.random.randint(1, self.n_cols - 1)
         return row, col
 
     def _initialize_environment(self):
@@ -334,10 +362,3 @@ class Craft2dEnv(gym.Env):
         elif self.direction[3] == 1:
             interaction_row += 1 if interaction_row + 1 < self.n_rows else 0
         return interaction_row, interaction_col
-
-
-if __name__ == "__main__":
-    env = Craft2dEnv(10, 10)
-    env.reset()
-
-    env.render()

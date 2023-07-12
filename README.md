@@ -8,11 +8,11 @@
 3. Get grass: Grass
 
 ### Medium
-1. Make sticks: Get wood + Use Crafting Table
-2. Make rope: Get grass + Use Crafting Table
+1. Make sticks: Get wood x 2 + Use Crafting Table
+2. Make rope: Get grass x 2 + Use Crafting Table
 
 ### Hard
-1. Make weapon: Sticks + Stone + Use Crafting Table
+1. Make weapon: Sticks x 1 + Stone x 2 + Use Crafting Table
 2. Make bridge: Rope + Sticks + Use Crafting Table
 
 ### Very Hard

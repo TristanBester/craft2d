@@ -13,9 +13,9 @@ USE = 4
 
 MAX_RESOURCE_COUNT = 3
 RESOURCE_COUNTS = {
-    "tree": 2,
-    "stone": 1,
-    "grass": 1,
+    "tree": 4,
+    "stone": 2,
+    "grass": 2,
     "gem": 1,
 }
 ENVIRONMENT_OBJECTS = (
@@ -44,8 +44,8 @@ TASKS = {
     "get-grass": 2,
     "make-sticks": 3,
     "make-rope": 4,
-    "make-basic-weapon": 5,
-    "make-bridge": 6,
+    "make-bridge": 5,
+    "make-basic-weapon": 6,
     "get-gem": 7,
     "make-advanced-weapon": 8,
 }
@@ -318,23 +318,23 @@ class Craft2dEnv(gym.Env):
             self.inventory[8] += 1
             self.inventory[6] -= 1
             self.inventory[7] -= 1
-        if self.inventory[3] > 0 and self.inventory[1] >= 1:
+        if self.inventory[3] > 0 and self.inventory[1] >= 2:
             # Weapon
             self.inventory[6] += 1
             self.inventory[3] -= 1
-            self.inventory[1] -= 1
+            self.inventory[1] -= 2
         elif self.inventory[3] > 0 and self.inventory[4] >= 1:
             # Bridge
             self.inventory[5] += 1
             self.inventory[3] -= 1
             self.inventory[4] -= 1
-        elif self.inventory[0] > 0:
+        elif self.inventory[0] > 1:
             # Sticks
-            self.inventory[0] -= 1
+            self.inventory[0] -= 2
             self.inventory[3] += 1
-        elif self.inventory[2] > 0:
+        elif self.inventory[2] > 1:
             # Rope
-            self.inventory[2] -= 1
+            self.inventory[2] -= 2
             self.inventory[4] += 1
 
     def _handle_water_interaction(self, itr_row, itr_col):

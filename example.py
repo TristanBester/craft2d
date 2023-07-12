@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from craft2d.env.environment import Craft2dEnv
 
-TASK = "get-wood"
+TASK = "make-basic-weapon"
 
 
 def get_rep(o):
@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
         # print(get_rep(o))
 
-        # env.render()
+        env.render()
 
         for t in range(5000):
             # print(get_rep(o))
@@ -84,12 +84,12 @@ if __name__ == "__main__":
             else:
                 hit_count.append(1)
 
-            if np.random.random() < 0.5:
-                a = np.random.choice([0, 1, 2, 3, 4])
-            else:
-                a = np.argmax(Q[get_rep(o)])
+            # if np.random.random() < 0.5:
+            #     a = np.random.choice([0, 1, 2, 3, 4])
+            # else:
+            #     a = np.argmax(Q[get_rep(o)])
 
-            # a = int(input())
+            a = int(input())
 
             o_prime, r, done = env.step(a)
 
@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
             o = o_prime
 
-            # env.render()
+            env.render()
 
         rewards.append(eval(Q, env))
         # rewards.append(r)

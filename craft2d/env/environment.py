@@ -294,9 +294,12 @@ class Craft2dEnv(gym.Env):
         object_name = ENVIRONMENT_OBJECTS[object_type]
 
         if object_name == "princess":
-            self.task_object = np.random.choice(("W", "S"))
-            self.task_object_count = np.random.choice(("M1", "M2"))
-            self.interaction_props = (self.task_object, self.task_object_count)
+            if self.task_object is None:
+                self.task_object = np.random.choice(("W", "S"))
+                self.task_object_count = np.random.choice(("M1", "M2"))
+                self.interaction_props = (self.task_object, self.task_object_count)
+            else:
+                self.interaction_props = ("P",)
         elif self.task_object is None:
             # Cannot interact before task specified
             return

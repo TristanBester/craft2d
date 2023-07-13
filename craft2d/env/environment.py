@@ -9,11 +9,11 @@ RIGHT = 0
 LEFT = 1
 UP = 2
 DOWN = 3
-USE = 4
+INTERACT = 4
 
 MAX_RESOURCE_COUNT = 3
 RESOURCE_COUNTS = {
-    "tree": 4,
+    "tree": 2,
     "stone": 2,
     "grass": 2,
     "gem": 1,
@@ -26,6 +26,7 @@ ENVIRONMENT_OBJECTS = (
     "water",
     "gem",
     "bridge",
+    "princess",
 )
 INVENTORY_OBJECTS = (
     "wood",
@@ -49,6 +50,7 @@ TASKS = {
     "get-gem": 7,
     "make-advanced-weapon": 8,
 }
+PROPS = ("W", "S")
 
 
 class Craft2dEnv(gym.Env):
@@ -102,15 +104,16 @@ class Craft2dEnv(gym.Env):
 
     def reset(
         self,
-        task: str = "get-wood",
         seed: int = None,
         options: dict[str, str] = None,
     ):
         super().reset(seed=seed)
-        # Set task
-        self.task = task
         # Reset number of steps taken in environment
         self.n_steps = 0
+
+        # Reset task state
+        self.task_object = None
+        self.task_object_count = None
 
         # Object order specified in ENVIRONMENT_OBJECTS
         self.grid = np.zeros((self.n_rows, self.n_cols, self.n_env_objects))
@@ -132,17 +135,27 @@ class Craft2dEnv(gym.Env):
 
         # Setup island
         self._initialize_island()
+
+        self.interaction_props = ()
         return self._create_observation()
 
     def step(self, action: int):
-        if action == USE:
-            self._handle_use_action()
+        self.interaction_props = ()
+
+        if action == INTERACT:
+            self._handle_interact_action()
         else:
             self._update_agent_position(action)
             self._update_agent_direction(action)
 
         obs = self._create_observation()
-        reward = 1 if self.inventory[TASKS[self.task]] == 1 else 0
+        reward = 0
+
+        if self.task_object is not None:
+            task_obj_idx = PROPS.index(self.task_object)
+
+            if self.inventory[task_obj_idx] == self.task_object_count:
+                reward = 1
         done = reward == 1
 
         return obs, reward, done
@@ -166,34 +179,16 @@ class Craft2dEnv(gym.Env):
             )
 
     def _create_observation(self):
-        # Fill observation with out of bounds
-        obs_grid = np.full((5, 5), fill_value=-1)
-
-        for d_r, d_c in product(range(-2, 3), range(-2, 3)):
-            n_r = self.agent_position[0] + d_r
-            n_c = self.agent_position[1] + d_c
-
-            # Test if out of bounds
-            if (n_r >= self.n_rows or n_r < 0) or (n_c >= self.n_cols or n_c < 0):
-                continue
-
-            obs_grid[d_r + 2, d_c + 2] = np.argmax(self.grid[n_r, n_c])
-
-        # return (
-        #     .copy(),
-        #     self.inventory.copy(),
-        #     self.direction.copy(),
-        # )
-
         return (
             np.array([self.agent_position[0], self.agent_position[1]]).copy(),
             self.inventory.copy(),
             self.direction.copy(),
+            self.interaction_props,
         )
 
     def _sample_position(self):
-        row = np.random.randint(1, self.n_rows - 1)
-        col = np.random.randint(1, self.n_cols - 1)
+        row = np.random.randint(2, self.n_rows - 1)
+        col = np.random.randint(2, self.n_cols - 1)
         return row, col
 
     def _initialize_environment(self):
@@ -283,10 +278,10 @@ class Craft2dEnv(gym.Env):
             self.direction[2] = 1
         elif action == DOWN:
             self.direction[3] = 1
-        elif action == USE:
+        elif action == INTERACT:
             self.direction = last_direction
 
-    def _handle_use_action(self):
+    def _handle_interact_action(self):
         # Cell in front of agent
         itr_row, itr_col = self._get_interaction_cell()
 
@@ -298,15 +293,27 @@ class Craft2dEnv(gym.Env):
         object_type = np.argmax(self.grid[itr_row, itr_col])
         object_name = ENVIRONMENT_OBJECTS[object_type]
 
+        if object_name == "princess":
+            self.task_object = np.random.choice(("W", "S"))
+            self.task_object_count = np.random.choice(("M1", "M2"))
+            self.interaction_props = (self.task_object, self.task_object_count)
+        elif self.task_object is None:
+            # Cannot interact before task specified
+            return
+
         # Collect resources from environment
         if object_name == "tree":
             self._collect_tree(itr_row, itr_col)
+            self.interaction_props = ("WD", "CL")
         elif object_name == "stone":
             self._collect_stone(itr_row, itr_col)
+            self.interaction_props = ("STN", "CL")
         elif object_name == "grass":
             self._collect_grass(itr_row, itr_col)
+            self.interaction_props = ("GRS", "CL")
         elif object_name == "gem":
             self._collect_gem(itr_row, itr_col)
+            self.interaction_props = ("GM", "CL")
         elif object_name == "water":
             self._handle_water_interaction(itr_row, itr_col)
         elif object_name == "crafting-table":
@@ -318,24 +325,29 @@ class Craft2dEnv(gym.Env):
             self.inventory[8] += 1
             self.inventory[6] -= 1
             self.inventory[7] -= 1
+            self.interaction_props = ("W-ADV", "CL")
         if self.inventory[3] > 0 and self.inventory[1] >= 2:
             # Weapon
             self.inventory[6] += 1
             self.inventory[3] -= 1
             self.inventory[1] -= 2
+            self.interaction_props = ("W-BSC", "CL")
         elif self.inventory[3] > 0 and self.inventory[4] >= 1:
             # Bridge
             self.inventory[5] += 1
             self.inventory[3] -= 1
             self.inventory[4] -= 1
+            self.interaction_props = ("BRG", "CL")
         elif self.inventory[0] > 1:
             # Sticks
             self.inventory[0] -= 2
             self.inventory[3] += 1
+            self.interaction_props = ("STKS", "CL")
         elif self.inventory[2] > 1:
             # Rope
             self.inventory[2] -= 2
             self.inventory[4] += 1
+            self.interaction_props = ("RP", "CL")
 
     def _handle_water_interaction(self, itr_row, itr_col):
         # Place bridge on water if agent has bridge in inventory

@@ -25,6 +25,7 @@ ISLAND_IMG_PATH = "resources/terrain/island.png"
 WATER_IMG_PATH = "resources/terrain/water.png"
 GEM_IMG_PATH = "resources/objects/gem.png"
 WEAPON_ADV_IMG_PATH = "resources/objects/weapon-advanced.png"
+PRINCESS_IMG_PATH = "resources/objects/princess.png"
 
 
 def get_file_path(file_name):
@@ -55,8 +56,8 @@ class Renderer:
         self.window_width = window_width
         self.window_height = window_height
         self.cell_size = (
-            self.window_width / (self.n_cols + 2),  # +2 for inventory
-            self.window_height / self.n_rows,
+            round(self.window_width / (self.n_cols + 2)),  # +2 for inventory
+            round(self.window_height / self.n_rows),
         )
 
         # Load assets
@@ -79,6 +80,7 @@ class Renderer:
         self.weapon_advanced_image = self._load_image(
             get_file_path(WEAPON_ADV_IMG_PATH)
         )
+        self.princess_image = self._load_image(get_file_path(PRINCESS_IMG_PATH))
 
         # Initialise pygame
         pygame.init()
@@ -121,6 +123,8 @@ class Renderer:
                 self._render_cell(self.crafting_table_image, r, c)
             elif object_name == "gem":
                 self._render_cell(self.gem_image, r, c)
+            elif object_name == "princess":
+                self._render_cell(self.princess_image, r, c)
 
     def _render_player(self, agent_position, direction):
         self._render_cell(
@@ -135,37 +139,37 @@ class Renderer:
 
             if object_name == "wood":
                 self._render_cell(image=self.wood_image, row=idx, col=self.n_cols)
-                self._render_text(text="Wood", row=idx, col=self.n_cols, loc="top")
+                # self._render_text(text="Wood", row=idx, col=self.n_cols, loc="top")
             elif object_name == "stone":
                 self._render_cell(image=self.stone_image, row=idx, col=self.n_cols)
-                self._render_text(text="Stone", row=idx, col=self.n_cols, loc="top")
+                # self._render_text(text="Stone", row=idx, col=self.n_cols, loc="top")
             elif object_name == "grass":
                 self._render_cell(image=self.grass_image, row=idx, col=self.n_cols)
-                self._render_text(text="Grass", row=idx, col=self.n_cols, loc="top")
+                # self._render_text(text="Grass", row=idx, col=self.n_cols, loc="top")
             elif object_name == "sticks":
                 self._render_cell(image=self.sticks_image, row=idx, col=self.n_cols)
-                self._render_text(text="Sticks", row=idx, col=self.n_cols, loc="top")
+                # self._render_text(text="Sticks", row=idx, col=self.n_cols, loc="top")
             elif object_name == "rope":
                 self._render_cell(image=self.rope_image, row=idx, col=self.n_cols)
-                self._render_text(text="Rope", row=idx, col=self.n_cols, loc="top")
+                # self._render_text(text="Rope", row=idx, col=self.n_cols, loc="top")
             elif object_name == "bridge":
                 self._render_cell(image=self.bridge_image, row=idx, col=self.n_cols)
-                self._render_text(text="Bridge", row=idx, col=self.n_cols, loc="top")
+                # self._render_text(text="Bridge", row=idx, col=self.n_cols, loc="top")
             elif object_name == "weapon-basic":
                 self._render_cell(
                     image=self.weapon_basic_image, row=idx, col=self.n_cols
                 )
-                self._render_text(text="Weapon", row=idx, col=self.n_cols, loc="top")
+                # self._render_text(text="Weapon", row=idx, col=self.n_cols, loc="top")
             elif object_name == "gem":
                 self._render_cell(image=self.gem_image, row=idx, col=self.n_cols)
-                self._render_text(text="Gem", row=idx, col=self.n_cols, loc="top")
+                # self._render_text(text="Gem", row=idx, col=self.n_cols, loc="top")
             elif object_name == "weapon-advanced":
                 self._render_cell(
                     image=self.weapon_advanced_image, row=idx, col=self.n_cols
                 )
-                self._render_text(
-                    text="Weapon (Adv)", row=idx, col=self.n_cols, loc="top"
-                )
+                # self._render_text(
+                #     text="Weapon (Adv)", row=idx, col=self.n_cols, loc="top"
+                # )
 
             self._render_text(
                 text="X " + str(int(count)), row=idx, col=self.n_cols + 1, size=20

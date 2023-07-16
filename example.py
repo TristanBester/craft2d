@@ -22,7 +22,7 @@ def get_rep(o):
 
 def eval(Q, env):
     done = False
-    o = env.reset(task=TASK)
+    o = env.reset()
 
     for t in range(30):
         if done:
@@ -37,7 +37,7 @@ def eval(Q, env):
 
 def render_eval(Q, env):
     done = False
-    o = env.reset(task=TASK)
+    o = env.reset()
 
     env.render()
 
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     hit_count = []
 
     for episode in pbar:
-        o = env.reset(task=TASK)
+        o = env.reset()
         done = False
 
         # print(get_rep(o))

@@ -50,7 +50,15 @@ TASKS = {
     "get-gem": 7,
     "make-advanced-weapon": 8,
 }
-PROPS = ("W", "S")
+PROPS = (
+    "WD",
+    "STN",
+    "GRS",
+    "STKS",
+    "RP",
+    "W-BSC",
+    "BRG",
+)
 
 
 class Craft2dEnv(gym.Env):
@@ -108,6 +116,7 @@ class Craft2dEnv(gym.Env):
         options: dict[str, str] = None,
     ):
         super().reset(seed=seed)
+        np.random.seed(seed)
         # Reset number of steps taken in environment
         self.n_steps = 0
 
@@ -295,8 +304,18 @@ class Craft2dEnv(gym.Env):
 
         if object_name == "princess":
             if self.task_object is None:
-                self.task_object = np.random.choice(("W", "S"))
-                self.task_object_count = np.random.choice(("M1", "M2"))
+                self.task_object = np.random.choice(
+                    (
+                        "WD",
+                        "STN",
+                        "GRS",
+                        "STKS",
+                        "RP",
+                        "W-BSC",
+                        "BRG",
+                    )
+                )
+                self.task_object_count = np.random.choice(("M1",))
                 self.interaction_props = (self.task_object, self.task_object_count)
             else:
                 self.interaction_props = ("P",)

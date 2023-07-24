@@ -11,11 +11,11 @@ UP = 2
 DOWN = 3
 INTERACT = 4
 
-MAX_RESOURCE_COUNT = 3
+MAX_RESOURCE_COUNT = 10
 RESOURCE_COUNTS = {
-    "tree": 2,
-    "stone": 1,
-    "grass": 0,
+    "tree": 10,
+    "stone": 10,
+    "grass": 10,
     "gem": 0,
 }
 ENVIRONMENT_OBJECTS = (
@@ -160,13 +160,17 @@ class Craft2dEnv(gym.Env):
         obs = self._create_observation()
         reward = 0
 
-        if self.task_object is not None:
+        # Reward = 1 when agent interacts with princess while holding task object
+        props = obs[-1]
+        if props == ("P",) and self.task_object is not None:
             task_obj_idx = PROPS.index(self.task_object)
 
-            if self.inventory[task_obj_idx] == self.task_object_count:
-                reward = 1
-        done = reward == 1
+            count = 1 if self.task_object_count == "M1" else 2
 
+            if self.inventory[task_obj_idx] == count:
+                reward = 1
+
+        done = reward == 1
         return obs, reward, done
 
     def render(self):
@@ -215,7 +219,7 @@ class Craft2dEnv(gym.Env):
             np.array([self.agent_position[0], self.agent_position[1]]).copy(),
             obs_grid.copy(),
             self.direction.copy(),
-            task_collected,
+            # task_collected,
             self.interaction_props,
         )
 
@@ -228,26 +232,83 @@ class Craft2dEnv(gym.Env):
         used_positions = []
 
         for i, object_name in enumerate(ENVIRONMENT_OBJECTS):
-            # Skip water and bridge
             if object_name in ("water", "bridge"):
                 continue
 
-            # Determine how many of each object to place
             if object_name in RESOURCE_COUNTS:
                 count = RESOURCE_COUNTS[object_name]
             else:
                 count = 1
 
-            # Place required number of specified object
-            for _ in range(count):
-                row, col = self._sample_position()
-                while (row, col) in used_positions:
-                    row, col = self._sample_position()
+            print(object_name)
 
-                # Add padding around object
-                for d_r, d_c in product(range(-1, 2), range(-1, 2)):
-                    used_positions.append((row + d_r, col + d_c))
-                self.grid[row, col, i] = 1
+            center_row = np.random.randint(3, self.n_rows - 4)
+            center_col = np.random.randint(3, self.n_cols - 4)
+
+            if object_name == "tree":
+                center_row = 3
+                center_col = 8
+            elif object_name == "stone":
+                center_row = 8
+                center_col = 3
+            elif object_name == "grass":
+                center_row = 8
+                center_col = 8
+            elif object_name == "princess":
+                center_row = 0 + 2
+                center_col = 4 + 2
+            elif object_name == "crafting-table":
+                center_row = 2 + 2
+                center_col = 2 + 2
+
+            counter = 0
+
+            for d_r, d_c in product(range(-2, 2), range(-2, 2)):
+                if counter == count:
+                    break
+
+                if (center_row + d_r, center_col + d_c) in used_positions:
+                    continue
+
+                used_positions.append((center_row + d_r, center_col + d_c))
+                self.grid[center_row + d_r, center_col + d_c, i] = 1
+                counter += 1
+
+            # for _ in range(count):
+            #     row = center_row + np.random.randint(-2, 3)
+            #     col = center_col + np.random.randint(-2, 3)
+
+            #     while (row, col) in used_positions:
+            #         row = center_row + np.random.randint(-2, 3)
+            #         col = center_col + np.random.randint(-2, 3)
+
+            #     used_positions.append((row, col))
+
+            #     # for d_r, d_c in product(range(-1, 2), range(-1, 2)):
+            #     #     used_positions.append((row + d_r, col + d_c))
+            #     self.grid[row, col, i] = 1
+
+        # for i, object_name in enumerate(ENVIRONMENT_OBJECTS):
+        #     # Skip water and bridge
+        #     if object_name in ("water", "bridge"):
+        #         continue
+
+        #     # Determine how many of each object to place
+        #     if object_name in RESOURCE_COUNTS:
+        #         count = RESOURCE_COUNTS[object_name]
+        #     else:
+        #         count = 1
+
+        #     # Place required number of specified object
+        #     for _ in range(count):
+        #         row, col = self._sample_position()
+        #         while (row, col) in used_positions:
+        #             row, col = self._sample_position()
+
+        #         # Add padding around object
+        #         for d_r, d_c in product(range(-1, 2), range(-1, 2)):
+        #             used_positions.append((row + d_r, col + d_c))
+        #         self.grid[row, col, i] = 1
 
     def _initialize_island(self):
         # Get island position
@@ -331,15 +392,20 @@ class Craft2dEnv(gym.Env):
                 self.task_object = np.random.choice(
                     (
                         "WD",
-                        "STN",
+                        # "STN",
                         # "GRS",
-                        "STKS",
+                        # "STKS",
                         # "RP",
-                        "W-BSC",
+                        # "W-BSC",
                         # "BRG",
                     )
                 )
-                self.task_object_count = np.random.choice(("M1",))
+                if self.task_object in ("WD", "STN"):
+                    count_options = ("M1",)
+                else:
+                    count_options = ("M1",)
+
+                self.task_object_count = np.random.choice(count_options)
                 self.interaction_props = (self.task_object, self.task_object_count)
             else:
                 self.interaction_props = ("P",)

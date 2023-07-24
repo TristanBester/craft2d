@@ -14,9 +14,9 @@ INTERACT = 4
 MAX_RESOURCE_COUNT = 3
 RESOURCE_COUNTS = {
     "tree": 2,
-    "stone": 2,
-    "grass": 2,
-    "gem": 1,
+    "stone": 1,
+    "grass": 0,
+    "gem": 0,
 }
 ENVIRONMENT_OBJECTS = (
     "tree",
@@ -142,8 +142,8 @@ class Craft2dEnv(gym.Env):
         else:
             self.grid = self.cached_grid.copy()
 
-        # Setup island
-        self._initialize_island()
+        # # Setup island
+        # self._initialize_island()
 
         self.interaction_props = ()
         return self._create_observation()
@@ -188,10 +188,34 @@ class Craft2dEnv(gym.Env):
             )
 
     def _create_observation(self):
+        # Fill observation with out of bounds
+        obs_grid = np.full((3, 3), fill_value=-1)
+
+        for d_r, d_c in product(range(-1, 2), range(-1, 2)):
+            n_r = self.agent_position[0] + d_r
+            n_c = self.agent_position[1] + d_c
+
+            # Test if out of bounds
+            if (n_r >= self.n_rows or n_r < 0) or (n_c >= self.n_cols or n_c < 0):
+                continue
+
+            if np.max(self.grid[n_r, n_c]) == 0:
+                # Empty cell
+                obs_grid[d_r + 1, d_c + 1] = 0
+            else:
+                # Object
+                obs_grid[d_r + 1, d_c + 1] = np.argmax(self.grid[n_r, n_c]) + 1
+
+        if self.task_object is None:
+            task_collected = np.array([0])
+        else:
+            task_collected = np.array([1])
+
         return (
             np.array([self.agent_position[0], self.agent_position[1]]).copy(),
-            self.inventory.copy(),
+            obs_grid.copy(),
             self.direction.copy(),
+            task_collected,
             self.interaction_props,
         )
 
@@ -308,11 +332,11 @@ class Craft2dEnv(gym.Env):
                     (
                         "WD",
                         "STN",
-                        "GRS",
+                        # "GRS",
                         "STKS",
-                        "RP",
+                        # "RP",
                         "W-BSC",
-                        "BRG",
+                        # "BRG",
                     )
                 )
                 self.task_object_count = np.random.choice(("M1",))

@@ -13,10 +13,10 @@ INTERACT = 4
 
 MAX_RESOURCE_COUNT = 10
 RESOURCE_COUNTS = {
-    "tree": 10,
-    "stone": 10,
-    "grass": 10,
-    "gem": 0,
+    "tree": 12,
+    "stone": 12,
+    "grass": 12,
+    "gem": 1,
 }
 ENVIRONMENT_OBJECTS = (
     "tree",
@@ -56,8 +56,10 @@ PROPS = (
     "GRS",
     "STKS",
     "RP",
-    "W-BSC",
     "BRG",
+    "W-BSC",
+    "GEM",
+    "W-ADV",
 )
 
 
@@ -113,7 +115,10 @@ class Craft2dEnv(gym.Env):
     def reset(
         self,
         seed: int = None,
-        options: dict[str, str] = None,
+        options: dict[str, str] = {
+            "task_object": "WD",
+            "task_object_count": "M1",
+        },
     ):
         super().reset(seed=seed)
         np.random.seed(seed)
@@ -121,8 +126,9 @@ class Craft2dEnv(gym.Env):
         self.n_steps = 0
 
         # Reset task state
-        self.task_object = None
-        self.task_object_count = None
+        self.task_object = options["task_object"]
+        self.task_object_count = options["task_object_count"]
+        self.task_set = False
 
         # Object order specified in ENVIRONMENT_OBJECTS
         self.grid = np.zeros((self.n_rows, self.n_cols, self.n_env_objects))
@@ -142,8 +148,8 @@ class Craft2dEnv(gym.Env):
         else:
             self.grid = self.cached_grid.copy()
 
-        # # Setup island
-        # self._initialize_island()
+        # Setup island
+        self._initialize_island()
 
         self.interaction_props = ()
         return self._create_observation()
@@ -165,7 +171,16 @@ class Craft2dEnv(gym.Env):
         if props == ("P",) and self.task_object is not None:
             task_obj_idx = PROPS.index(self.task_object)
 
-            count = 1 if self.task_object_count == "M1" else 2
+            if self.task_object_count == "M1":
+                count = 1
+            elif self.task_object_count == "M2":
+                count = 2
+            elif self.task_object_count == "M3":
+                count = 3
+            elif self.task_object_count == "M4":
+                count = 4
+            elif self.task_object_count == "M5":
+                count = 5
 
             if self.inventory[task_obj_idx] == count:
                 reward = 1
@@ -240,26 +255,29 @@ class Craft2dEnv(gym.Env):
             else:
                 count = 1
 
-            print(object_name)
+            # print(object_name)
 
-            center_row = np.random.randint(3, self.n_rows - 4)
-            center_col = np.random.randint(3, self.n_cols - 4)
+            center_row = np.random.randint(5, self.n_rows - 4)
+            center_col = np.random.randint(5, self.n_cols - 4)
 
             if object_name == "tree":
-                center_row = 3
-                center_col = 8
+                center_row = 4
+                center_col = 10
             elif object_name == "stone":
-                center_row = 8
+                center_row = 10
                 center_col = 3
             elif object_name == "grass":
-                center_row = 8
-                center_col = 8
+                center_row = 10
+                center_col = 10
             elif object_name == "princess":
                 center_row = 0 + 2
-                center_col = 4 + 2
+                center_col = 3 + 2
             elif object_name == "crafting-table":
-                center_row = 2 + 2
-                center_col = 2 + 2
+                center_row = 0 + 2
+                center_col = 6 + 2
+            elif object_name == "gem":
+                center_row = 3 + 2
+                center_col = 3 + 2
 
             counter = 0
 
@@ -388,25 +406,9 @@ class Craft2dEnv(gym.Env):
         object_name = ENVIRONMENT_OBJECTS[object_type]
 
         if object_name == "princess":
-            if self.task_object is None:
-                self.task_object = np.random.choice(
-                    (
-                        "WD",
-                        # "STN",
-                        # "GRS",
-                        # "STKS",
-                        # "RP",
-                        # "W-BSC",
-                        # "BRG",
-                    )
-                )
-                if self.task_object in ("WD", "STN"):
-                    count_options = ("M1",)
-                else:
-                    count_options = ("M1",)
-
-                self.task_object_count = np.random.choice(count_options)
+            if not self.task_set:
                 self.interaction_props = (self.task_object, self.task_object_count)
+                self.task_set = True
             else:
                 self.interaction_props = ("P",)
         elif self.task_object is None:

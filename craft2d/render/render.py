@@ -57,7 +57,7 @@ class Renderer:
         self.window_height = window_height
         self.cell_size = (
             round(self.window_width / (self.n_cols + 2)),  # +2 for inventory
-            round(self.window_height / self.n_rows),
+            round(self.window_height / (self.n_rows + 2)),  # +2 for quest
         )
 
         # Load assets
@@ -139,45 +139,121 @@ class Renderer:
 
             if object_name == "wood":
                 self._render_cell(image=self.wood_image, row=idx, col=self.n_cols)
-                # self._render_text(text="Wood", row=idx, col=self.n_cols, loc="top")
+                self._render_text(text="Wood", row=idx, col=self.n_cols, loc="top")
             elif object_name == "stone":
                 self._render_cell(image=self.stone_image, row=idx, col=self.n_cols)
-                # self._render_text(text="Stone", row=idx, col=self.n_cols, loc="top")
+                self._render_text(text="Stone", row=idx, col=self.n_cols, loc="top")
             elif object_name == "grass":
                 self._render_cell(image=self.grass_image, row=idx, col=self.n_cols)
-                # self._render_text(text="Grass", row=idx, col=self.n_cols, loc="top")
+                self._render_text(text="Grass", row=idx, col=self.n_cols, loc="top")
             elif object_name == "sticks":
                 self._render_cell(image=self.sticks_image, row=idx, col=self.n_cols)
-                # self._render_text(text="Sticks", row=idx, col=self.n_cols, loc="top")
+                self._render_text(text="Sticks", row=idx, col=self.n_cols, loc="top")
             elif object_name == "rope":
                 self._render_cell(image=self.rope_image, row=idx, col=self.n_cols)
-                # self._render_text(text="Rope", row=idx, col=self.n_cols, loc="top")
+                self._render_text(text="Rope", row=idx, col=self.n_cols, loc="top")
             elif object_name == "bridge":
                 self._render_cell(image=self.bridge_image, row=idx, col=self.n_cols)
-                # self._render_text(text="Bridge", row=idx, col=self.n_cols, loc="top")
+                self._render_text(text="Bridge", row=idx, col=self.n_cols, loc="top")
             elif object_name == "weapon-basic":
                 self._render_cell(
                     image=self.weapon_basic_image, row=idx, col=self.n_cols
                 )
-                # self._render_text(text="Weapon", row=idx, col=self.n_cols, loc="top")
+                self._render_text(text="Weapon", row=idx, col=self.n_cols, loc="top")
             elif object_name == "gem":
                 self._render_cell(image=self.gem_image, row=idx, col=self.n_cols)
-                # self._render_text(text="Gem", row=idx, col=self.n_cols, loc="top")
+                self._render_text(text="Gem", row=idx, col=self.n_cols, loc="top")
             elif object_name == "weapon-advanced":
                 self._render_cell(
                     image=self.weapon_advanced_image, row=idx, col=self.n_cols
                 )
-                # self._render_text(
-                #     text="Weapon (Adv)", row=idx, col=self.n_cols, loc="top"
-                # )
+                self._render_text(
+                    text="Weapon (Adv)", row=idx, col=self.n_cols, loc="top"
+                )
 
             self._render_text(
                 text="X " + str(int(count)), row=idx, col=self.n_cols + 1, size=20
             )
 
-    def _render_text(self, text, row, col, size=20, loc="center"):
+    def _render_quest(
+        self, quest_set, quest_object, quest_object_count, completed, failed
+    ):
+        if not quest_set:
+            self._render_text(
+                "Quest not collected!",
+                row=self.n_rows,
+                col=(self.n_cols + 2) // 2,
+                size=40,
+            )
+        elif completed:
+            self._render_text(
+                "Quest completed!",
+                row=self.n_rows,
+                col=(self.n_cols + 2) // 2,
+                size=40,
+                colour=(0, 255, 0),
+            )
+        elif failed:
+            self._render_text(
+                "Quest failed!",
+                row=self.n_rows,
+                col=(self.n_cols + 2) // 2,
+                size=40,
+                colour=(255, 0, 0),
+            )
+        else:
+            if quest_object_count == "M1":
+                count = 1
+            elif quest_object_count == "M2":
+                count = 2
+            elif quest_object_count == "M3":
+                count = 3
+            elif quest_object_count == "M4":
+                count = 4
+            elif quest_object_count == "M5":
+                count = 5
+            else:
+                count = 0
+
+            if quest_object == "WD":
+                obj = "Wood"
+            elif quest_object == "STN":
+                obj = "Stone"
+            elif quest_object == "GRS":
+                obj = "Grass"
+            elif quest_object == "STKS":
+                obj = "Sticks"
+            elif quest_object == "RP":
+                obj = "Rope"
+            elif quest_object == "BRG":
+                obj = "Bridge"
+            elif quest_object == "W-BSC":
+                obj = "Weapon (Basic)"
+            elif quest_object == "GEM":
+                obj = "Gem"
+            elif quest_object == "W-ADV":
+                obj = "Weapon (Advanced)"
+            else:
+                obj = "Unknown"
+
+            self._render_text(
+                "Quest:",
+                row=self.n_rows,
+                col=(self.n_cols + 2) // 2,
+                size=40,
+            )
+            self._render_text(
+                f"Collect {obj} x {count}",
+                row=self.n_rows + 1,
+                col=(self.n_cols + 2) // 2,
+                size=40,
+            )
+
+    def _render_text(
+        self, text, row, col, size=20, loc="center", colour=(255, 255, 255)
+    ):
         font = pygame.font.Font(None, size)
-        text = font.render(text, True, (255, 255, 255))
+        text = font.render(text, True, colour)
 
         if loc == "center":
             pos = (
@@ -239,12 +315,26 @@ class HumanRenderer(Renderer):
         pygame.display.set_caption(window_title)
         self.window = pygame.display.set_mode((self.window_width, self.window_height))
 
-    def render(self, grid, inventory, agent_position, direction):
+    def render(
+        self,
+        grid,
+        inventory,
+        agent_position,
+        direction,
+        quest_set: bool = False,
+        quest_object: str = None,
+        quest_object_count: int = 0,
+        completed: bool = False,
+        failed: bool = False,
+    ):
         self.window.fill((0, 0, 0))
         self._render_background(grid)
         self._render_env_objects(grid)
         self._render_player(agent_position, direction)
         self._render_inventory(inventory)
+        self._render_quest(
+            quest_set, quest_object, quest_object_count, completed, failed
+        )
         self._handle_events()
 
     def _handle_events(self):

@@ -129,6 +129,8 @@ class Craft2dEnv(gym.Env):
         self.task_object = options["task_object"]
         self.task_object_count = options["task_object_count"]
         self.task_set = False
+        self.task_completed = False
+        self.task_failed = False
 
         # Object order specified in ENVIRONMENT_OBJECTS
         self.grid = np.zeros((self.n_rows, self.n_cols, self.n_env_objects))
@@ -184,6 +186,7 @@ class Craft2dEnv(gym.Env):
 
             if self.inventory[task_obj_idx] == count:
                 reward = 1
+                self.task_completed = True
 
         done = reward == 1
         return obs, reward, done
@@ -204,6 +207,11 @@ class Craft2dEnv(gym.Env):
                 inventory=self.inventory,
                 agent_position=self.agent_position,
                 direction=self.direction,
+                quest_set=self.task_set,
+                quest_object=self.task_object,
+                quest_object_count=self.task_object_count,
+                completed=self.task_completed,
+                failed=self.task_failed,
             )
 
     def _create_observation(self):

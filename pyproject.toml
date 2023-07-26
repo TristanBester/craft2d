@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "craft2d"
-version = "0.1.6"
+version = "0.1.7"
 description = ""
 authors = ["Tristan Bester <tristanbester@gmail.com>"]
 readme = "README.md"

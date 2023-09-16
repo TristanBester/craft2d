@@ -3,7 +3,7 @@ from itertools import product
 import gymnasium as gym
 import numpy as np
 
-from craft2d.render.render import HumanRenderer
+from craft2d.render.render import HumanRenderer, RgbRenderer
 
 RIGHT = 0
 LEFT = 1
@@ -111,6 +111,13 @@ class Craft2dEnv(gym.Env):
                 inv_objects=INVENTORY_OBJECTS,
                 fps=24,
             )
+        elif self.render_mode == "rgb_array":
+            self.renderer = RgbRenderer(
+                n_rows=self.n_rows,
+                n_cols=self.n_cols,
+                env_objects=ENVIRONMENT_OBJECTS,
+                inv_objects=INVENTORY_OBJECTS,
+            )
 
     def reset(
         self,
@@ -189,7 +196,7 @@ class Craft2dEnv(gym.Env):
                 self.task_completed = True
 
         done = reward == 1
-        return obs, reward, done
+        return obs, reward, done, False, {}
 
     def render(self):
         if self.render_mode is None:
@@ -201,8 +208,8 @@ class Craft2dEnv(gym.Env):
             )
             return
 
-        if self.render_mode == "human":
-            self.renderer.render(
+        if self.render_mode in ("human", "rgb_array"):
+            return self.renderer.render(
                 grid=self.grid,
                 inventory=self.inventory,
                 agent_position=self.agent_position,
@@ -247,8 +254,8 @@ class Craft2dEnv(gym.Env):
         )
 
     def _sample_position(self):
-        row = np.random.randint(2, self.n_rows - 1)
-        col = np.random.randint(2, self.n_cols - 1)
+        row = np.random.randint(2, self.n_rows - 2)
+        col = np.random.randint(2, self.n_cols - 2)
         return row, col
 
     def _initialize_environment(self):
@@ -265,8 +272,8 @@ class Craft2dEnv(gym.Env):
 
             # print(object_name)
 
-            center_row = np.random.randint(5, self.n_rows - 4)
-            center_col = np.random.randint(5, self.n_cols - 4)
+            # center_row = np.random.randint(2, self.n_rows - 4)
+            # center_col = np.random.randint(2, self.n_cols - 4)
 
             if object_name == "tree":
                 center_row = 4
@@ -299,42 +306,6 @@ class Craft2dEnv(gym.Env):
                 used_positions.append((center_row + d_r, center_col + d_c))
                 self.grid[center_row + d_r, center_col + d_c, i] = 1
                 counter += 1
-
-            # for _ in range(count):
-            #     row = center_row + np.random.randint(-2, 3)
-            #     col = center_col + np.random.randint(-2, 3)
-
-            #     while (row, col) in used_positions:
-            #         row = center_row + np.random.randint(-2, 3)
-            #         col = center_col + np.random.randint(-2, 3)
-
-            #     used_positions.append((row, col))
-
-            #     # for d_r, d_c in product(range(-1, 2), range(-1, 2)):
-            #     #     used_positions.append((row + d_r, col + d_c))
-            #     self.grid[row, col, i] = 1
-
-        # for i, object_name in enumerate(ENVIRONMENT_OBJECTS):
-        #     # Skip water and bridge
-        #     if object_name in ("water", "bridge"):
-        #         continue
-
-        #     # Determine how many of each object to place
-        #     if object_name in RESOURCE_COUNTS:
-        #         count = RESOURCE_COUNTS[object_name]
-        #     else:
-        #         count = 1
-
-        #     # Place required number of specified object
-        #     for _ in range(count):
-        #         row, col = self._sample_position()
-        #         while (row, col) in used_positions:
-        #             row, col = self._sample_position()
-
-        #         # Add padding around object
-        #         for d_r, d_c in product(range(-1, 2), range(-1, 2)):
-        #             used_positions.append((row + d_r, col + d_c))
-        #         self.grid[row, col, i] = 1
 
     def _initialize_island(self):
         # Get island position

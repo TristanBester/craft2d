@@ -351,3 +351,27 @@ class RgbRenderer(Renderer):
     def __init__(self, **kwargs: dict):
         super().__init__(**kwargs)
         self.window = pygame.Surface((self.window_width, self.window_height))
+
+    def render(
+        self,
+        grid,
+        inventory,
+        agent_position,
+        direction,
+        quest_set: bool = False,
+        quest_object: str = None,
+        quest_object_count: int = 0,
+        completed: bool = False,
+        failed: bool = False,
+    ):
+        self.window.fill((0, 0, 0))
+        self._render_background(grid)
+        self._render_env_objects(grid)
+        self._render_player(agent_position, direction)
+        self._render_inventory(inventory)
+        self._render_quest(
+            quest_set, quest_object, quest_object_count, completed, failed
+        )
+        return np.transpose(
+            np.array(pygame.surfarray.pixels3d(self.window)), axes=(1, 0, 2)
+        )
